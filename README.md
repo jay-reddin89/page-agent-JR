@@ -35,7 +35,7 @@ cd page-agent-demo
 npm install
 
 # Configure LLM (required)
-cp .env.example .env
+cp .env.example .env.local
 # Edit .env with your LLM credentials
 
 # Run dev server
