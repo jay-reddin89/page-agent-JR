@@ -30,7 +30,7 @@ This demo showcases a complete page-agent integration with:
 
 ```bash
 # Clone and install
-git clone <repo-url>
+git clone https://github.com/khawjaahmad/page-agent-demo.git
 cd page-agent-demo
 npm install
 
