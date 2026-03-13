@@ -7,70 +7,39 @@ let agentInstance: PageAgent | null = null;
  * Page-level instructions for each route
  * These help the AI understand what actions are available on each page
  */
-const PAGE_INSTRUCTIONS: Record<string, string> = (
-  {
-    '/': `
-This is the landing page for Innovate AI 2026 Conference in Dubai.
-Available actions:
-- Click "Register Now" to start the registration flow (goes to auth page)
-- Click "Sign In" to go to the sign-in page
-- Scroll down to see conference highlights
+const PAGE_INSTRUCTIONS: Record<string, string> = {
+  '/': `
+Click "Register Now" to go to /auth
+Scroll down to view conference info
 `,
-
-    '/auth': `
-This is the authentication page with tabs for Sign Up and Sign In.
-Available actions:
-- Click on "Sign Up" or "Sign In" tabs to switch between forms
-- Fill in name, email, and password fields
-- Click "Sign Up" or "Sign In" buttons to submit the form
-- After successful auth, user is redirected to ticket selection
+  '/auth': `
+Enter any email and password, click "Sign In"
+Redirects to /tickets
 `,
-
-    '/tickets': `
-This is the ticket selection page with three ticket tiers.
-Available actions:
-- Click on any ticket card to select it (Early Bird $199, Student $99, VIP $499)
-- View ticket benefits on each card
-- After selection, click "Continue to Workshops" button
+  '/tickets': `
+Click a ticket card to select (Early Bird $199, Student $99, VIP $499)
+Click "Continue to Workshops" button
 `,
-
-    '/workshops': `
-This is the workshop selection page with 8 AI/ML themed workshops.
-Available actions:
-- Click on workshop cards to toggle selection (VIP gets all automatically)
-- View workshop details: title, description, time slot, capacity
-- Note: workshops with conflicting time slots cannot both be selected
-- Click "Add to Cart" button when done selecting
+  '/workshops': `
+Click workshops to select (VIP gets all automatically)
+Click "Add to Cart" button
+Click "Back to Tickets" to change ticket
 `,
-
-    '/cart': `
-This is the cart page showing selected items.
-Available actions:
-- Review selected ticket and workshops
-- Enter discount codes in the coupon field (EARLY10, SPEAKER25, FREEPASS)
-- Click "Apply" button to apply discount
-- Click "Proceed to Checkout" to continue
+  '/cart': `
+Review selected ticket and workshops
+Enter discount code: EARLY10, SPEAKER25, or FREEPASS
+Click "Proceed to Checkout"
 `,
-
-    '/checkout': `
-This is the checkout/payment page.
-Available actions:
-- Fill in payment details: card number (16 digits), expiry (MM/YY), CVV, cardholder name
-- Click "Pay Now" to submit payment
-- Note: Cards starting with 0000 will be declined
-- After successful payment, user is redirected to confirmation
+  '/checkout': `
+If total is $0: click "Complete Registration"
+Otherwise: fill card number (16 digits, not starting with 0000), expiry (MM/YY), CVV, cardholder name
+Click "Pay Now"
 `,
-
-    '/confirmation': `
-This is the confirmation page displaying the ticket.
-Available actions:
-- View ticket details: attendee info, ticket type, workshops, ticket ID
-- Scan the QR code for check-in
-- Click "Download Ticket" to save as image
-- Click "Register Another" to start a new registration
+  '/confirmation': `
+View ticket details
+Click "Register Another" to start over
 `,
-  }
-);
+};
 
 /**
  * Initialize the page-agent instance
@@ -95,26 +64,17 @@ export function initializePageAgent(): PageAgent {
     instructions: {
       system: `
 You are an AI assistant for the Innovate AI 2026 Conference registration website.
-You help users navigate the registration flow, select tickets, choose workshops, and complete checkout.
 
-Key Guidelines:
-- Always confirm actions before executing them (e.g., "I'll click the Register Now button")
-- Be clear and concise in your explanations
-- If a user asks about pricing, explain the ticket tiers and workshop availability
-- For payment, clearly explain the total before proceeding
-- Report any errors immediately and suggest next steps
-- VIP tickets automatically include all workshops
+Demo rules:
+- Auth accepts any email/password
+- Cards starting with 0000 are declined
 
-Registration Flow:
-1. Landing Page → Auth (Sign Up/Sign In)
-2. Ticket Selection (Early Bird $199, Student $99, VIP $499)
-3. Workshop Selection (VIP gets all, others select individually)
-4. Cart (apply discounts like EARLY10, SPEAKER25, FREEPASS)
-5. Checkout (payment form)
-6. Confirmation (ticket with QR code)
+Registration flow: / → /auth → /tickets → /workshops → /cart → /checkout → /confirmation
+
+Tickets: Early Bird $199, Student $99, VIP $499 (VIP includes all workshops)
+Discount codes: EARLY10 (10%), SPEAKER25 (25%), FREEPASS (100%)
 `,
       getPageInstructions: (url: string) => {
-        // Find matching page instruction
         const path = new URL(url).pathname;
         return PAGE_INSTRUCTIONS[path] || PAGE_INSTRUCTIONS[path + '/'] || undefined;
       },
