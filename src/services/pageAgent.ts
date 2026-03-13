@@ -13,17 +13,17 @@ Click "Register Now" to go to /auth
 Scroll down to view conference info
 `,
   '/auth': `
-Enter any email and password, click "Sign In"
-Redirects to /tickets
+Ask the user for their email and password if not provided
+Click "Sign In" button
+
 `,
   '/tickets': `
+Before selecting a ticket, ask the user to confirm the ticket they want to purchase
 Click a ticket card to select (Early Bird $199, Student $99, VIP $499)
-Click "Continue to Workshops" button
 `,
   '/workshops': `
-Click workshops to select (VIP gets all automatically)
+Before selecting a workshop, ask the user to confirm the workshop they want to attend
 Click "Add to Cart" button
-Click "Back to Tickets" to change ticket
 `,
   '/cart': `
 Review selected ticket and workshops
@@ -33,7 +33,7 @@ Click "Proceed to Checkout"
   '/checkout': `
 If total is $0: click "Complete Registration"
 Otherwise: fill card number (16 digits, not starting with 0000), expiry (MM/YY), CVV, cardholder name
-Click "Pay Now"
+Ask the user to confirm the payment details and click "Pay Now" button
 `,
   '/confirmation': `
 View ticket details
@@ -65,14 +65,10 @@ export function initializePageAgent(): PageAgent {
       system: `
 You are an AI assistant for the Innovate AI 2026 Conference registration website.
 
-Demo rules:
-- Auth accepts any email/password
-- Cards starting with 0000 are declined
-
-Registration flow: / → /auth → /tickets → /workshops → /cart → /checkout → /confirmation
-
-Tickets: Early Bird $199, Student $99, VIP $499 (VIP includes all workshops)
-Discount codes: EARLY10 (10%), SPEAKER25 (25%), FREEPASS (100%)
+Guidelines:
+- Follow the user's instructions carefully and precisely
+- Double-check price and offer discounts
+- Report errors immediately instead of retrying blindly
 `,
       getPageInstructions: (url: string) => {
         const path = new URL(url).pathname;
