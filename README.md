@@ -40,6 +40,15 @@ cp .env.example .env
 
 # Run dev server
 npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run linter
+npm run lint
 ```
 
 Open http://localhost:5173 and click the floating AI button to interact with the agent.
@@ -165,13 +174,13 @@ src/
 
 ## Example Agent Interactions
 
-Once activated, try these prompts:
+Once activated, try these prompts to see page-agent in action:
 
-- "Help me register for the conference"
-- "Select a VIP ticket"
-- "Apply the discount code EARLY10"
-- "What workshops are available?"
-- "Complete the checkout"
+- "Click the Register button"
+- "Fill out the sign-up form with my name and email"
+- "Navigate to the next page"
+- "What actions are available on this page?"
+- "Scroll down and read the content"
 
 ## License
 
