@@ -11,7 +11,7 @@ let settings = getSettings();
 
 const ui = createUI(togglePanel, applySettings);
 
-addLog('lifecycle', 'Page Agent userscript started', { version: '0.3.0' });
+addLog('lifecycle', 'Page Agent userscript started', { version: '0.4.0' });
 addLog('navigation', 'Page loaded', { url: window.location.href });
 window.addEventListener('hashchange', () => addLog('navigation', 'URL hash changed', { url: window.location.href }));
 window.addEventListener('popstate', () => addLog('navigation', 'Browser history changed', { url: window.location.href }));
@@ -39,6 +39,7 @@ function mountAgent(nextSettings: AgentSettings, show = false): void {
     baseURL: nextSettings.baseURL,
     model: nextSettings.model,
     apiKeyConfigured: Boolean(nextSettings.apiKey),
+    appendChatCompletions: nextSettings.appendChatCompletions,
   });
   let previousStatus = agent.status;
   agent.addEventListener('statuschange', () => {
@@ -107,6 +108,7 @@ function applySettings(nextSettings: AgentSettings): void {
     baseURL: settings.baseURL,
     model: settings.model,
     apiKeyConfigured: Boolean(settings.apiKey),
+    appendChatCompletions: settings.appendChatCompletions,
   });
   document.querySelector<HTMLDialogElement>('dialog[open]')?.close();
   mountAgent(settings, true);

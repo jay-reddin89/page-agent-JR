@@ -33,7 +33,8 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
       <form style="all:initial;color:#fff;font:14px/1.4 system-ui,sans-serif">
         <p style="margin:0 0 18px;color:#c3b8d5">Saved by your userscript manager. The API key is optional and stored as plain text only when supplied.</p>
         <label style="display:block;margin-bottom:14px">VITE_LLM_MODEL<input name="model" placeholder="qwen3.5-plus" required style="${inputStyle}"></label>
-        <label style="display:block;margin-bottom:14px">VITE_LLM_BASE_URL<input name="baseURL" type="url" placeholder="https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run" required style="${inputStyle}"></label>
+        <label style="display:block;margin-bottom:8px">VITE_LLM_BASE_URL<input name="baseURL" type="url" placeholder="https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run" required style="${inputStyle}"></label>
+        <label style="display:flex;align-items:center;gap:7px;margin:0 0 14px;color:#c3b8d5"><input name="appendChatCompletions" type="checkbox"> Append <code>/chat/completions</code> to this URL</label>
         <label style="display:block;margin-bottom:14px">VITE_LLM_API_KEY <span style="color:#a99db8">(optional)</span><input name="apiKey" type="password" placeholder="Leave empty for keyless providers" autocomplete="off" style="${inputStyle}"></label>
         <p data-settings-error role="alert" style="min-height:20px;margin:0 0 8px;color:#fda4af"></p>
         <div style="display:flex;justify-content:flex-end;gap:10px"><button data-cancel type="button" style="${buttonStyle}">Cancel</button><button type="submit" style="${buttonStyle}background:#7c3aed">Save settings</button></div>
@@ -107,7 +108,7 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
-    onSave({ model: field('model').value, baseURL: field('baseURL').value, apiKey: field('apiKey').value });
+    onSave({ model: field('model').value, baseURL: field('baseURL').value, apiKey: field('apiKey').value, appendChatCompletions: field('appendChatCompletions').checked });
   });
 
   const open = (tab: 'settings' | 'logs') => {
@@ -124,6 +125,7 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
       field('model').value = settings.model;
       field('baseURL').value = settings.baseURL;
       field('apiKey').value = settings.apiKey;
+      field('appendChatCompletions').checked = settings.appendChatCompletions;
       error.textContent = message;
       open('settings');
     },

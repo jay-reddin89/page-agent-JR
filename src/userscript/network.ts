@@ -22,6 +22,7 @@ function safeErrorBody(buffer: ArrayBuffer): string | undefined {
 
 export const createUserscriptFetch = (settings: AgentSettings): typeof fetch => async (input, init = {}) => {
   const request = new Request(input, init);
+  const effectiveUrl = settings.appendChatCompletions ? request.url : settings.baseURL;
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => { headers[key] = value; });
   const apiKeyConfigured = Boolean(settings.apiKey);
@@ -35,24 +36,27 @@ export const createUserscriptFetch = (settings: AgentSettings): typeof fetch => 
 
   addLog('request', 'Sending request to provider/cloud', {
     method: request.method,
-    url: request.url,
+    requestedUrl: request.url,
+    effectiveUrl,
     baseURL: settings.baseURL,
     model: settings.model,
     apiKeyConfigured,
     authorizationHeaderSent: authorizationSent,
+    appendChatCompletions: settings.appendChatCompletions,
   });
   const startedAt = performance.now();
 
   return new Promise<Response>((resolve, reject) => {
     const xhr = GM_xmlhttpRequest({
       method: request.method,
-      url: request.url,
+      url: effectiveUrl,
       headers,
       data,
       responseType: 'arraybuffer',
       onload: response => {
         const details = {
-          url: request.url,
+          requestedUrl: request.url,
+          effectiveUrl,
           finalUrl: response.finalUrl,
           status: response.status,
           statusText: response.statusText,
@@ -68,11 +72,11 @@ export const createUserscriptFetch = (settings: AgentSettings): typeof fetch => 
         }));
       },
       onerror: () => {
-        addLog('error', 'Userscript network request failed', { url: request.url });
-        reject(new TypeError(`Network request failed for ${request.url}`));
+        addLog('error', 'Userscript network request failed', { requestedUrl: request.url, effectiveUrl });
+        reject(new TypeError(`Network request failed for ${effectiveUrl}`));
       },
       ontimeout: () => {
-        addLog('error', 'Userscript network request timed out', { url: request.url });
+        addLog('error', 'Userscript network request timed out', { requestedUrl: request.url, effectiveUrl });
         reject(new DOMException('The request timed out.', 'TimeoutError'));
       },
     });
