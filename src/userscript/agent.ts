@@ -1,0 +1,21 @@
+import { PageAgent } from 'page-agent';
+import type { AgentSettings } from './settings';
+import { userscriptFetch } from './network';
+
+export function createAgent(settings: AgentSettings): PageAgent {
+  return new PageAgent({
+    ...settings,
+    customFetch: userscriptFetch,
+    language: 'en-US',
+    enableMask: true,
+    viewportExpansion: 0,
+    instructions: {
+      system: `You are a browser assistant operating on the webpage the user is viewing.
+- Follow the user's request precisely.
+- Ask before submitting forms, purchases, messages, or other consequential actions.
+- Never reveal or copy passwords, API keys, payment data, or private tokens.
+- Report errors clearly and stop rather than retrying blindly.`,
+      getPageInstructions: url => `Current page: ${url}`,
+    },
+  });
+}
