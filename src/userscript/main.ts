@@ -2,13 +2,26 @@ import type { PageAgent } from 'page-agent';
 import { createAgent } from './agent';
 import { attachPanelGeometry } from './panelGeometry';
 import { createUI } from './ui';
-import { getSettings, saveSettings, validateSettings, type AgentSettings } from './settings';
+import { clearSettings, getSettings, normalizeSettings, saveSettings, validateSettings, type AgentSettings } from './settings';
 
 let agent: PageAgent | null = null;
 let detachPanel: (() => void) | null = null;
 let settings = getSettings();
 
 const ui = createUI(togglePanel, applySettings);
+
+GM_registerMenuCommand('Open Page Agent settings', () => ui.openSettings(settings));
+GM_registerMenuCommand('Toggle Page Agent', togglePanel);
+GM_registerMenuCommand('Clear saved Page Agent credentials', () => {
+  if (!window.confirm('Clear the saved Page Agent endpoint, model, and API key?')) return;
+  detachPanel?.();
+  agent?.dispose();
+  agent = null;
+  detachPanel = null;
+  settings = clearSettings();
+  ui.setOpen(false);
+  ui.openSettings(settings, 'Saved credentials were cleared.');
+});
 
 function mountAgent(nextSettings: AgentSettings, show = false): void {
   detachPanel?.();
@@ -43,8 +56,9 @@ function mountAgent(nextSettings: AgentSettings, show = false): void {
 }
 
 function togglePanel(): void {
-  if (!settings.apiKey) {
-    ui.openSettings(settings);
+  const settingsError = validateSettings(settings);
+  if (settingsError) {
+    ui.openSettings(settings, settingsError);
     return;
   }
   if (!agent || agent.disposed) mountAgent(settings, true);
@@ -58,11 +72,7 @@ function togglePanel(): void {
 }
 
 function applySettings(nextSettings: AgentSettings): void {
-  const normalized = {
-    baseURL: nextSettings.baseURL.trim(),
-    apiKey: nextSettings.apiKey.trim(),
-    model: nextSettings.model.trim(),
-  };
+  const normalized = normalizeSettings(nextSettings);
   const error = validateSettings(normalized);
   if (error) {
     ui.openSettings(normalized, error);
@@ -74,4 +84,4 @@ function applySettings(nextSettings: AgentSettings): void {
   mountAgent(settings, true);
 }
 
-if (settings.apiKey) mountAgent(settings);
+if (!validateSettings(settings)) mountAgent(settings);

@@ -9,7 +9,15 @@ npm install
 npm run build
 ```
 
-Install `dist/page-agent.user.js` with Tampermonkey or Violentmonkey. Open the launcher, enter an OpenAI-compatible endpoint, model, and API key, then save.
+Install `dist/page-agent.user.js` with ScriptCat, Tampermonkey, or Violentmonkey. Open the launcher and save settings in this format:
+
+```dotenv
+VITE_LLM_BASE_URL=https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run
+VITE_LLM_API_KEY=your-api-key
+VITE_LLM_MODEL=qwen3.5-plus
+```
+
+Replace `your-api-key` with the real key accepted by the endpoint. `NA` and placeholder values are rejected before the agent starts. The settings appear as three separate records in userscript storage. Version 0.2 automatically migrates the earlier `page-agent-settings-v1` JSON object.
 
 ## Development
 

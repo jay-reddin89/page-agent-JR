@@ -1,5 +1,7 @@
 declare function GM_getValue<T>(key: string, fallback: T): T;
 declare function GM_setValue<T>(key: string, value: T): void;
+declare function GM_deleteValue(key: string): void;
+declare function GM_registerMenuCommand(name: string, callback: () => void): void;
 
 interface GMXmlHttpResponse {
   status: number;

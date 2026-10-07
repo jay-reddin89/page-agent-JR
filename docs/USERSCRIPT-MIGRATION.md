@@ -21,7 +21,7 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 - [x] Remove the conference application, routes, pages, and app state from the build.
 - [x] Replace the React entry point with a standalone userscript entry point.
 - [x] Make Page Agent prompts generic for arbitrary websites.
-- [x] Move model, endpoint, and API-key settings into userscript-owned storage.
+- [x] Move model, endpoint, and API-key settings into userscript-owned storage using separate `VITE_LLM_*` records.
 - [x] Add a cross-origin request adapter for OpenAI-compatible endpoints.
 - [x] Configure a single-file `dist/page-agent.user.js` build.
 - [x] Keep drag, resize, settings, hide, and reopen behavior.
@@ -43,6 +43,14 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 - [ ] Mask password, payment, token, and private fields before page content is sent to the model.
 - [ ] Require confirmation before submissions, purchases, messages, deletions, or other consequential actions.
 - [ ] Add a per-domain allow/deny list and a global pause switch.
+
+### ScriptCat integration
+
+- Storage contains `VITE_LLM_BASE_URL`, `VITE_LLM_API_KEY`, and `VITE_LLM_MODEL` as separate records.
+- The legacy `page-agent-settings-v1` object is migrated automatically and removed.
+- The script menu exposes settings, panel toggle, and credential clearing commands.
+- Script Settings are driven by metadata for match rules, run timing, source, support, and permissions.
+- Resources intentionally remain empty because the bundle is self-contained; adding a fake resource would add network and update failure points without providing functionality.
 
 ### Phase 4 — Distribution
 
