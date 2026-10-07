@@ -2,6 +2,22 @@ import { PageAgent } from 'page-agent';
 import { config } from '../config/env';
 
 let agentInstance: PageAgent | null = null;
+export type AgentSettings = { baseURL: string; apiKey: string; model: string };
+export function getAgentSettings(): AgentSettings {
+  if (runtimeSettings) return { ...runtimeSettings };
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('page-agent-settings') || 'null');
+    if (saved && ['baseURL', 'apiKey', 'model'].every(key => typeof saved[key] === 'string')) return saved;
+  } catch { /* Use environment defaults if browser storage is unavailable. */ }
+  return { ...config.llm };
+}
+export function updateAgentSettings(settings: AgentSettings) {
+  try { sessionStorage.setItem('page-agent-settings', JSON.stringify(settings)); } catch { /* Memory still works. */ }
+  runtimeSettings = settings;
+  agentInstance?.dispose();
+  agentInstance = null;
+}
+let runtimeSettings: AgentSettings | null = null;
 
 /**
  * Page-level instructions for each route
@@ -46,14 +62,13 @@ Click "Register Another" to start over
  * Should be called once at app root
  */
 export function initializePageAgent(): PageAgent {
-  if (agentInstance) {
+  if (agentInstance && !agentInstance.disposed) {
     return agentInstance;
   }
 
+  const settings = runtimeSettings || getAgentSettings();
   agentInstance = new PageAgent({
-    baseURL: config.llm.baseURL,
-    apiKey: config.llm.apiKey,
-    model: config.llm.model,
+    ...settings,
     language: 'en-US',
 
     // PageController options
