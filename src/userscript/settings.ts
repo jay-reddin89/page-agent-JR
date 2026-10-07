@@ -75,9 +75,8 @@ export function validateSettings(settings: AgentSettings): string | null {
   }
   if (!['https:', 'http:'].includes(endpoint.protocol)) return 'Use an HTTP or HTTPS endpoint.';
   if (!settings.model.trim()) return 'Enter a model name.';
-  if (!settings.apiKey.trim()) return 'Enter an API key.';
-  if (['na', 'your-api-key'].includes(settings.apiKey.trim().toLowerCase())) {
-    return 'Replace the placeholder with the real API key required by this endpoint.';
+  if (settings.apiKey && ['na', 'your-api-key'].includes(settings.apiKey.trim().toLowerCase())) {
+    return 'Leave the API key empty for a keyless endpoint, or enter a real key.';
   }
   return null;
 }

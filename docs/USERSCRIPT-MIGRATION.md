@@ -23,6 +23,8 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 - [x] Make Page Agent prompts generic for arbitrary websites.
 - [x] Move model, endpoint, and API-key settings into userscript-owned storage using separate `VITE_LLM_*` records.
 - [x] Add a cross-origin request adapter for OpenAI-compatible endpoints.
+- [x] Support keyless providers without sending an `Authorization` header.
+- [x] Add live, route-filtered diagnostics with copy and clear controls.
 - [x] Configure a single-file `dist/page-agent.user.js` build.
 - [x] Keep drag, resize, settings, hide, and reopen behavior.
 

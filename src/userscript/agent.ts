@@ -1,11 +1,12 @@
 import { PageAgent } from 'page-agent';
 import type { AgentSettings } from './settings';
-import { userscriptFetch } from './network';
+import { createUserscriptFetch, NO_API_KEY_SENTINEL } from './network';
 
 export function createAgent(settings: AgentSettings): PageAgent {
   return new PageAgent({
     ...settings,
-    customFetch: userscriptFetch,
+    apiKey: settings.apiKey || NO_API_KEY_SENTINEL,
+    customFetch: createUserscriptFetch(settings),
     language: 'en-US',
     enableMask: true,
     viewportExpansion: 0,

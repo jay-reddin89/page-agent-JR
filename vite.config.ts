@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 const userscriptHeader = `// ==UserScript==
 // @name         Page Agent Everywhere
 // @namespace    https://github.com/jay-reddin89/page-agent-JR
-// @version      0.2.0
+// @version      0.3.0
 // @description  Add a configurable Page Agent assistant to every webpage.
 // @match        http://*/*
 // @match        https://*/*
@@ -17,6 +17,7 @@ const userscriptHeader = `// ==UserScript==
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_registerMenuCommand
+// @grant        GM_setClipboard
 // @grant        GM_xmlhttpRequest
 // @connect      *
 // ==/UserScript==`

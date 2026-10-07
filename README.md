@@ -17,7 +17,9 @@ VITE_LLM_API_KEY=your-api-key
 VITE_LLM_MODEL=qwen3.5-plus
 ```
 
-Replace `your-api-key` with the real key accepted by the endpoint. `NA` and placeholder values are rejected before the agent starts. The settings appear as three separate records in userscript storage. Version 0.2 automatically migrates the earlier `page-agent-settings-v1` JSON object.
+The API key is optional. Leave it empty for the free Page Agent testing endpoint or another keyless provider. `NA` and placeholder values are rejected because they would otherwise be sent as invalid bearer credentials. The settings appear as three separate records in userscript storage. Version 0.2+ automatically migrates the earlier `page-agent-settings-v1` JSON object.
+
+The Settings popup includes a live Logs tab. It records lifecycle, navigation, outbound request metadata, inbound response status, and errors. Each route can be enabled independently, and logs can be copied or cleared. API keys and authorization values are never logged.
 
 ## Development
 
