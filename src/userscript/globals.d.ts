@@ -3,6 +3,7 @@ declare function GM_setValue<T>(key: string, value: T): void;
 declare function GM_deleteValue(key: string): void;
 declare function GM_registerMenuCommand(name: string, callback: () => void): void;
 declare function GM_setClipboard(data: string, type?: string): void;
+declare const unsafeWindow: Window & typeof globalThis;
 
 interface GMXmlHttpResponse {
   status: number;

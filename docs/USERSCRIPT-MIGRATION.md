@@ -49,7 +49,7 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 
 ### ScriptCat integration
 
-- Storage contains `VITE_LLM_BASE_URL`, `VITE_LLM_API_KEY`, `VITE_LLM_MODEL`, and `VITE_LLM_APPEND_CHAT_COMPLETIONS` as separate records.
+- Storage contains `VITE_LLM_BASE_URL`, `VITE_LLM_API_KEY`, `VITE_LLM_MODEL`, `VITE_LLM_APPEND_CHAT_COMPLETIONS`, and `VITE_LLM_TRANSPORT` as separate records.
 - The legacy `page-agent-settings-v1` object is migrated automatically and removed.
 - The script menu exposes settings, panel toggle, and credential clearing commands.
 - Script Settings are driven by metadata for match rules, run timing, source, support, and permissions.

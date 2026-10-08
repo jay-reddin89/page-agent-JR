@@ -35,6 +35,7 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
         <label style="display:block;margin-bottom:14px">VITE_LLM_MODEL<input name="model" placeholder="qwen3.5-plus" required style="${inputStyle}"></label>
         <label style="display:block;margin-bottom:8px">VITE_LLM_BASE_URL<input name="baseURL" type="url" placeholder="https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run" required style="${inputStyle}"></label>
         <label style="display:flex;align-items:center;gap:7px;margin:0 0 14px;color:#c3b8d5"><input name="appendChatCompletions" type="checkbox"> Append <code>/chat/completions</code> to this URL</label>
+        <label style="display:block;margin-bottom:14px">Request transport<select name="transport" style="${inputStyle}"><option value="native">Native page fetch (recommended)</option><option value="userscript">Userscript GM request (fallback)</option></select></label>
         <label style="display:block;margin-bottom:14px">VITE_LLM_API_KEY <span style="color:#a99db8">(optional)</span><input name="apiKey" type="password" placeholder="Leave empty for keyless providers" autocomplete="off" style="${inputStyle}"></label>
         <p data-settings-error role="alert" style="min-height:20px;margin:0 0 8px;color:#fda4af"></p>
         <div style="display:flex;justify-content:flex-end;gap:10px"><button data-cancel type="button" style="${buttonStyle}">Cancel</button><button type="submit" style="${buttonStyle}background:#7c3aed">Save settings</button></div>
@@ -108,7 +109,7 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
-    onSave({ model: field('model').value, baseURL: field('baseURL').value, apiKey: field('apiKey').value, appendChatCompletions: field('appendChatCompletions').checked });
+    onSave({ model: field('model').value, baseURL: field('baseURL').value, apiKey: field('apiKey').value, appendChatCompletions: field('appendChatCompletions').checked, transport: field('transport').value as AgentSettings['transport'] });
   });
 
   const open = (tab: 'settings' | 'logs') => {
@@ -126,6 +127,7 @@ export function createUI(onToggle: () => void, onSave: (settings: AgentSettings)
       field('baseURL').value = settings.baseURL;
       field('apiKey').value = settings.apiKey;
       field('appendChatCompletions').checked = settings.appendChatCompletions;
+      field('transport').value = settings.transport;
       error.textContent = message;
       open('settings');
     },
