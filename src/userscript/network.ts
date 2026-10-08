@@ -46,6 +46,8 @@ export const createProviderFetch = (settings: AgentSettings): typeof fetch => as
     model: settings.model,
     transport: settings.transport,
     pageOrigin: window.location.origin,
+    requestHeaderNames: Object.keys(headers).sort(),
+    requestBodyBytes: data?.byteLength ?? 0,
     apiKeyConfigured,
     authorizationHeaderSent: authorizationSent,
     appendChatCompletions: settings.appendChatCompletions,
@@ -74,6 +76,9 @@ export const createProviderFetch = (settings: AgentSettings): typeof fetch => as
         durationMs: Math.round(performance.now() - startedAt),
         transport: settings.transport,
         pageOrigin: window.location.origin,
+        responseType: response.headers.get('content-type') ?? 'unknown',
+        requestId: response.headers.get('x-fc-request-id') ?? undefined,
+        allowedOrigin: response.headers.get('access-control-allow-origin') ?? 'not exposed',
         ...(response.ok ? {} : { providerError: await errorBodyFromResponse(response) }),
       };
       addLog('response', 'Received response from provider/cloud', details);
@@ -86,6 +91,7 @@ export const createProviderFetch = (settings: AgentSettings): typeof fetch => as
         transport: settings.transport,
         pageOrigin: window.location.origin,
         error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        hint: 'Check the browser Network tab for CORS/preflight details and confirm Native page fetch is selected.',
       };
       addLog('error', 'Native page fetch failed', details);
       throw error;

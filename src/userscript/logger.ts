@@ -1,4 +1,4 @@
-export type LogRoute = 'lifecycle' | 'navigation' | 'request' | 'response' | 'error';
+export type LogRoute = 'lifecycle' | 'navigation' | 'diagnostic' | 'request' | 'response' | 'error';
 
 export interface LogEntry {
   id: number;
@@ -16,6 +16,7 @@ const MAX_LOGS = 250;
 const DEFAULT_ROUTES: LogRoutePreferences = {
   lifecycle: true,
   navigation: true,
+  diagnostic: true,
   request: true,
   response: true,
   error: true,
@@ -78,4 +79,18 @@ export function formatLogs(): string {
     const details = entry.details ? `\n${JSON.stringify(entry.details, null, 2)}` : '';
     return `[${entry.timestamp}] [${entry.route.toUpperCase()}] ${entry.message}${details}`;
   }).join('\n\n');
+}
+
+export function diagnosticSnapshot(version: string): Record<string, unknown> {
+  return {
+    version,
+    pageUrl: window.location.href,
+    pageOrigin: window.location.origin,
+    secureContext: window.isSecureContext,
+    online: navigator.onLine,
+    language: navigator.language,
+    userAgent: navigator.userAgent,
+    userscriptManager: typeof GM_info === 'undefined' ? 'unknown' : GM_info.scriptHandler,
+    userscriptEngineVersion: typeof GM_info === 'undefined' ? 'unknown' : GM_info.version,
+  };
 }

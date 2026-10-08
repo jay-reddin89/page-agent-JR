@@ -4,14 +4,25 @@ import { attachPanelGeometry } from './panelGeometry';
 import { createUI } from './ui';
 import { clearSettings, getSettings, normalizeSettings, saveSettings, validateSettings, type AgentSettings } from './settings';
 import { addLog } from './logger';
+import { diagnosticSnapshot } from './logger';
+import { clearProfile, getProfile, saveProfile } from './profile';
+
+const VERSION = '0.6.0';
 
 let agent: PageAgent | null = null;
 let detachPanel: (() => void) | null = null;
 let settings = getSettings();
 
-const ui = createUI(togglePanel, applySettings);
+const ui = createUI(togglePanel, applySettings, getProfile, profile => {
+  saveProfile(profile);
+  addLog('lifecycle', 'User details saved', { populatedFields: Object.values(profile).filter(Boolean).length });
+}, () => {
+  clearProfile();
+  addLog('lifecycle', 'User details cleared');
+});
 
-addLog('lifecycle', 'Page Agent userscript started', { version: '0.5.0' });
+addLog('lifecycle', 'Page Agent userscript started', { version: VERSION });
+addLog('diagnostic', 'Runtime diagnostic snapshot', diagnosticSnapshot(VERSION));
 addLog('navigation', 'Page loaded', { url: window.location.href });
 window.addEventListener('hashchange', () => addLog('navigation', 'URL hash changed', { url: window.location.href }));
 window.addEventListener('popstate', () => addLog('navigation', 'Browser history changed', { url: window.location.href }));
@@ -66,6 +77,17 @@ function mountAgent(nextSettings: AgentSettings, show = false): void {
     ui.openSettings(settings);
   });
   controls?.prepend(settingsButton);
+  const newSessionButton = document.createElement('button');
+  newSessionButton.type = 'button';
+  newSessionButton.textContent = '+';
+  newSessionButton.title = 'Start a new session';
+  newSessionButton.setAttribute('aria-label', 'Clear chat and start a new session');
+  if (templateButton) newSessionButton.className = templateButton.className.replace(/\S*expandButton\S*/g, '');
+  newSessionButton.addEventListener('click', event => {
+    event.stopPropagation();
+    startNewSession();
+  });
+  settingsButton.after(newSessionButton);
   const closeButton = controls?.querySelector<HTMLButtonElement>('[class*="_stopButton_"]');
   closeButton?.addEventListener('click', event => {
     if (agent?.status === 'running') return;
@@ -78,6 +100,11 @@ function mountAgent(nextSettings: AgentSettings, show = false): void {
     agent.panel.show();
     ui.setOpen(true);
   }
+}
+
+function startNewSession(): void {
+  addLog('lifecycle', 'Starting a new agent session', { reason: 'user-requested' });
+  mountAgent(settings, true);
 }
 
 function togglePanel(): void {
@@ -112,7 +139,7 @@ function applySettings(nextSettings: AgentSettings): void {
     appendChatCompletions: settings.appendChatCompletions,
     transport: settings.transport,
   });
-  document.querySelector<HTMLDialogElement>('dialog[open]')?.close();
+  ui.close();
   mountAgent(settings, true);
 }
 

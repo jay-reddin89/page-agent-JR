@@ -1,139 +1,58 @@
-import { clearLogs, formatLogs, getLogRoutes, getLogs, setLogRoute, subscribeLogs, type LogRoute } from './logger';
+import { addLog, clearLogs, diagnosticSnapshot, formatLogs, getLogRoutes, getLogs, setLogRoute, subscribeLogs, type LogRoute } from './logger';
+import type { UserProfile } from './profile';
 import type { AgentSettings } from './settings';
 
-const buttonStyle = 'all:initial;box-sizing:border-box;font:600 12px/1.2 system-ui,sans-serif;color:#fff;background:#171125;border:1px solid #8b5cf6;border-radius:8px;padding:8px 11px;cursor:pointer;box-shadow:0 5px 18px #0008;';
-const inputStyle = 'box-sizing:border-box;display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #685582;border-radius:8px;background:#241b35;color:#fff;';
+const VERSION = '0.6.0';
+const routes: LogRoute[] = ['lifecycle', 'navigation', 'diagnostic', 'request', 'response', 'error'];
 
-export interface UserscriptUI {
-  setOpen(open: boolean): void;
-  openSettings(settings: AgentSettings, error?: string): void;
-  openLogs(): void;
+export interface UserscriptUI { setOpen(open: boolean): void; openSettings(settings: AgentSettings, error?: string): void; openLogs(): void; close(): void; }
+
+export function createUI(onToggle: () => void, onSave: (settings: AgentSettings) => void, getUserProfile: () => UserProfile, onSaveProfile: (profile: UserProfile) => void, onClearProfile: () => void): UserscriptUI {
+  const host = document.createElement('div');
+  host.id = 'page-agent-userscript-ui';
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>
+    :host{all:initial;color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}button,input,select,textarea{font:inherit}
+    button{color:#f8f7ff;background:#271c3b;border:1px solid #7557a7;border-radius:9px;padding:8px 12px;cursor:pointer}button:hover{background:#34244f;border-color:#9d78dd}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
+    #launcher{position:fixed;left:12px;top:12px;z-index:2147483647;font-weight:700;background:#151022;box-shadow:0 6px 22px #0008}
+    dialog{width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;border:1px solid #4f3b6c;border-radius:18px;background:#171122;color:#f8f7ff;box-shadow:0 28px 90px #000c;overflow:hidden}dialog::backdrop{background:#0b071399;backdrop-filter:blur(3px)}
+    .shell{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)}.head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 13px}.title{font-size:21px;font-weight:750}.version{font-size:11px;color:#a99abb;margin-left:8px}
+    .tabs{display:flex;gap:5px;padding:0 22px;border-bottom:1px solid #3b304b}.tab{border:0;border-radius:8px 8px 0 0;background:transparent;color:#bdb0cb}.tab[aria-selected=true]{color:#fff;background:#2c2040;box-shadow:inset 0 -2px #9f7aea}
+    .body{padding:20px 22px 22px;overflow:auto;scrollbar-width:none}.body::-webkit-scrollbar,.logbox::-webkit-scrollbar{display:none}.panel[hidden]{display:none}.muted{color:#b8aac8;margin:0 0 18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wide{grid-column:1/-1}
+    label{display:block;color:#ddd4e8;font-size:13px}.field{display:block;width:100%;margin-top:6px;padding:10px 11px;color:#fff;background:#21182f;border:1px solid #56436e;border-radius:9px}.field::placeholder{color:#81758e}.check{display:flex;align-items:center;gap:8px;margin-top:10px}.check input{accent-color:#8b5cf6}
+    .actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:18px}.primary{background:#6d3bd1;border-color:#8b5cf6}.danger{border-color:#ef4444;color:#fecaca}.status{min-height:20px;color:#c4b5fd}.error{color:#fda4af}
+    fieldset{border:1px solid #453654;border-radius:10px;padding:10px 12px;margin:0 0 14px}.routes{display:flex;flex-wrap:wrap;gap:8px 16px}.routes label{display:flex;align-items:center;gap:5px}.loghead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.logbox{height:min(390px,45dvh);overflow:auto;margin-top:10px;padding:13px;border:1px solid #443552;border-radius:10px;background:#09070d;color:#d9f9df;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;scrollbar-width:none}
+    @media(max-width:600px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.head,.body{padding-left:15px;padding-right:15px}.tabs{padding-left:15px}}
+  </style><button id="launcher" type="button">Page Agent</button><dialog><div class="shell">
+    <header class="head"><div><span class="title">Page Agent</span><span class="version">v${VERSION}</span></div><button data-close type="button">Close</button></header>
+    <nav class="tabs" role="tablist"><button class="tab" data-tab="settings" type="button">Settings</button><button class="tab" data-tab="details" type="button">Details</button><button class="tab" data-tab="logs" type="button">Logs <span data-log-count></span></button></nav>
+    <main class="body"><section class="panel" data-panel="settings"><form data-settings-form><p class="muted">Provider configuration is saved in your userscript manager. API keys are optional.</p><div class="grid">
+      <label>Model<input class="field" name="model" placeholder="qwen3.5-plus" required></label><label>Request transport<select class="field" name="transport"><option value="native">Native page fetch (recommended)</option><option value="userscript">Userscript GM request (fallback)</option></select></label>
+      <label class="wide">Base URL<input class="field" name="baseURL" type="url" required></label><label class="wide check"><input name="appendChatCompletions" type="checkbox"> Append <code>/chat/completions</code></label><label class="wide">API key <span class="muted">(optional)</span><input class="field" name="apiKey" type="password" placeholder="Leave empty for keyless providers" autocomplete="off"></label>
+    </div><p class="status error" data-settings-error></p><div class="actions"><button type="submit" class="primary">Save settings</button></div></form></section>
+    <section class="panel" data-panel="details" hidden><form data-profile-form><p class="muted">Optional details the agent can use when relevant. Stored locally by your userscript manager. Do not enter passwords, API keys, payment details, or security answers.</p><div class="grid">
+      ${profileField('firstName','First name')}${profileField('middleName','Middle name')}${profileField('surname','Surname')}${profileField('nickname','Nickname')}${profileField('age','Age','number')}${profileField('gender','Gender / sex')}${profileField('pronouns','Pronouns')}${profileField('email','Email','email')}${profileField('phone','Phone','tel')}${profileField('website','Website','url')}${profileField('address','Street address','text',true)}${profileField('city','City')}${profileField('region','State / region')}${profileField('postalCode','Postal code')}${profileField('country','Country')}${profileField('occupation','Occupation')}${profileField('company','Company')}${profileArea('likes','Likes')}${profileArea('hobbies','Hobbies')}${profileArea('about','About me')}${profileArea('additionalNotes','Additional notes')}
+    </div><p class="status" data-profile-status></p><div class="actions"><button data-clear-profile class="danger" type="button">Clear details</button><button class="primary" type="submit">Save details</button></div></form></section>
+    <section class="panel" data-panel="logs" hidden><p class="muted">Live diagnostics for v${VERSION}. Secrets and authorization values are never written to logs.</p><fieldset><legend>Active log routes</legend><div class="routes">${routes.map(route => `<label><input type="checkbox" data-route="${route}"> ${route}</label>`).join('')}</div></fieldset><div class="loghead"><span class="status" data-log-status></span><div><button data-snapshot type="button">Add snapshot</button> <button data-copy type="button">Copy logs</button> <button data-clear class="danger" type="button">Clear</button></div></div><pre class="logbox" data-log-output tabindex="0"></pre></section>
+    </main></div></dialog>`;
+  document.documentElement.appendChild(host);
+  const dialog = root.querySelector('dialog')!, settingsForm = root.querySelector<HTMLFormElement>('[data-settings-form]')!, profileForm = root.querySelector<HTMLFormElement>('[data-profile-form]')!;
+  const sf = (name: string) => settingsForm.elements.namedItem(name) as HTMLInputElement;
+  const pf = (name: string) => profileForm.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+  const output = root.querySelector<HTMLElement>('[data-log-output]')!, logStatus = root.querySelector<HTMLElement>('[data-log-status]')!, profileStatus = root.querySelector<HTMLElement>('[data-profile-status]')!;
+  let activeTab = 'settings';
+  const fillProfile = (profile: UserProfile) => Object.entries(profile).forEach(([key, value]) => { pf(key).value = value; });
+  const showTab = (tab: string) => { activeTab = tab; root.querySelectorAll<HTMLElement>('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== tab; }); root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.tab === tab))); if (tab === 'logs') output.scrollTop = output.scrollHeight; if (tab === 'details') fillProfile(getUserProfile()); };
+  const renderLogs = () => { output.textContent = formatLogs(); root.querySelector<HTMLElement>('[data-log-count]')!.textContent = `(${getLogs().length})`; const preferences = getLogRoutes(); root.querySelectorAll<HTMLInputElement>('[data-route]').forEach(box => { box.checked = preferences[box.dataset.route as LogRoute]; }); if (activeTab === 'logs') output.scrollTop = output.scrollHeight; };
+  subscribeLogs(renderLogs); renderLogs();
+  root.querySelector('#launcher')!.addEventListener('click', onToggle); root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.addEventListener('click', () => showTab(button.dataset.tab!))); root.querySelectorAll<HTMLInputElement>('[data-route]').forEach(box => box.addEventListener('change', () => setLogRoute(box.dataset.route as LogRoute, box.checked)));
+  root.querySelector('[data-close]')!.addEventListener('click', () => dialog.close()); root.querySelector('[data-copy]')!.addEventListener('click', () => { GM_setClipboard(formatLogs(), 'text'); logStatus.textContent = 'Logs copied.'; }); root.querySelector('[data-clear]')!.addEventListener('click', () => { clearLogs(); logStatus.textContent = 'Logs cleared.'; }); root.querySelector('[data-snapshot]')!.addEventListener('click', () => addLog('diagnostic', 'Manual diagnostic snapshot', diagnosticSnapshot(VERSION)));
+  root.querySelector('[data-clear-profile]')!.addEventListener('click', () => { if (!confirm('Clear all saved personal details?')) return; onClearProfile(); fillProfile(getUserProfile()); profileStatus.textContent = 'Details cleared.'; });
+  settingsForm.addEventListener('submit', event => { event.preventDefault(); onSave({ model: sf('model').value, baseURL: sf('baseURL').value, apiKey: sf('apiKey').value, appendChatCompletions: sf('appendChatCompletions').checked, transport: sf('transport').value as AgentSettings['transport'] }); });
+  profileForm.addEventListener('submit', event => { event.preventDefault(); const profile = Object.fromEntries([...new FormData(profileForm)].map(([key, value]) => [key, String(value)])) as unknown as UserProfile; onSaveProfile({ ...getUserProfile(), ...profile }); profileStatus.textContent = 'Details saved. Start a new session to refresh agent context.'; });
+  const open = (tab: string) => { showTab(tab); if (!dialog.open) dialog.showModal(); };
+  return { setOpen(opened) { const launcher = root.querySelector<HTMLButtonElement>('#launcher')!; launcher.setAttribute('aria-expanded', String(opened)); launcher.style.borderColor = opened ? '#22c55e' : '#7557a7'; }, openSettings(settings, message = '') { sf('model').value = settings.model; sf('baseURL').value = settings.baseURL; sf('apiKey').value = settings.apiKey; sf('appendChatCompletions').checked = settings.appendChatCompletions; sf('transport').value = settings.transport; root.querySelector<HTMLElement>('[data-settings-error]')!.textContent = message; open('settings'); }, openLogs() { logStatus.textContent = ''; open('logs'); }, close() { dialog.close(); } };
 }
 
-export function createUI(onToggle: () => void, onSave: (settings: AgentSettings) => void): UserscriptUI {
-  const launcher = document.createElement('button');
-  launcher.id = 'page-agent-userscript-launcher';
-  launcher.textContent = 'Page Agent';
-  launcher.setAttribute('style', `${buttonStyle}position:fixed;left:12px;top:12px;z-index:2147483647;`);
-  launcher.addEventListener('click', onToggle);
-  document.documentElement.appendChild(launcher);
-
-  const dialog = document.createElement('dialog');
-  dialog.setAttribute('style', 'box-sizing:border-box;width:min(680px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:0;border-radius:16px;border:1px solid #685582;background:#171125;color:#fff;font:14px/1.4 system-ui,sans-serif;z-index:2147483647;box-shadow:0 20px 70px #000b;');
-  dialog.innerHTML = `<div style="padding:22px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-      <h2 style="all:initial;color:#fff;font:600 22px/1.2 system-ui,sans-serif">Page Agent</h2>
-      <button data-close type="button" aria-label="Close settings" style="${buttonStyle}">Close</button>
-    </div>
-    <div role="tablist" aria-label="Page Agent configuration" style="display:flex;gap:8px;border-bottom:1px solid #453854;margin-bottom:18px">
-      <button data-tab="settings" type="button" role="tab" style="${buttonStyle}border-radius:8px 8px 0 0">Settings</button>
-      <button data-tab="logs" type="button" role="tab" style="${buttonStyle}border-radius:8px 8px 0 0">Logs <span data-log-count></span></button>
-    </div>
-    <section data-panel="settings" role="tabpanel">
-      <form style="all:initial;color:#fff;font:14px/1.4 system-ui,sans-serif">
-        <p style="margin:0 0 18px;color:#c3b8d5">Saved by your userscript manager. The API key is optional and stored as plain text only when supplied.</p>
-        <label style="display:block;margin-bottom:14px">VITE_LLM_MODEL<input name="model" placeholder="qwen3.5-plus" required style="${inputStyle}"></label>
-        <label style="display:block;margin-bottom:8px">VITE_LLM_BASE_URL<input name="baseURL" type="url" placeholder="https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run" required style="${inputStyle}"></label>
-        <label style="display:flex;align-items:center;gap:7px;margin:0 0 14px;color:#c3b8d5"><input name="appendChatCompletions" type="checkbox"> Append <code>/chat/completions</code> to this URL</label>
-        <label style="display:block;margin-bottom:14px">Request transport<select name="transport" style="${inputStyle}"><option value="native">Native page fetch (recommended)</option><option value="userscript">Userscript GM request (fallback)</option></select></label>
-        <label style="display:block;margin-bottom:14px">VITE_LLM_API_KEY <span style="color:#a99db8">(optional)</span><input name="apiKey" type="password" placeholder="Leave empty for keyless providers" autocomplete="off" style="${inputStyle}"></label>
-        <p data-settings-error role="alert" style="min-height:20px;margin:0 0 8px;color:#fda4af"></p>
-        <div style="display:flex;justify-content:flex-end;gap:10px"><button data-cancel type="button" style="${buttonStyle}">Cancel</button><button type="submit" style="${buttonStyle}background:#7c3aed">Save settings</button></div>
-      </form>
-    </section>
-    <section data-panel="logs" role="tabpanel" hidden>
-      <p style="margin:0 0 12px;color:#c3b8d5">Choose which routes are recorded. API keys and authorization values are never written to logs.</p>
-      <fieldset data-routes style="margin:0 0 12px;padding:10px;border:1px solid #453854;border-radius:8px">
-        <legend style="padding:0 6px">Active log routes</legend>
-        ${(['lifecycle', 'navigation', 'request', 'response', 'error'] as LogRoute[]).map(route => `<label style="display:inline-flex;align-items:center;gap:5px;margin:4px 14px 4px 0"><input type="checkbox" data-route="${route}"> ${route}</label>`).join('')}
-      </fieldset>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
-        <span data-log-status aria-live="polite" style="color:#a99db8"></span>
-        <div style="display:flex;gap:8px"><button data-copy type="button" style="${buttonStyle}">Copy logs</button><button data-clear type="button" style="${buttonStyle}border-color:#ef4444">Clear logs</button></div>
-      </div>
-      <pre data-log-output tabindex="0" aria-label="Live Page Agent logs" style="box-sizing:border-box;width:100%;height:340px;overflow:auto;margin:0;padding:12px;border:1px solid #453854;border-radius:8px;background:#09070e;color:#d8f3dc;font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere"></pre>
-    </section>
-  </div>`;
-  document.documentElement.appendChild(dialog);
-
-  const form = dialog.querySelector('form') as HTMLFormElement;
-  const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
-  const settingsPanel = dialog.querySelector<HTMLElement>('[data-panel="settings"]')!;
-  const logsPanel = dialog.querySelector<HTMLElement>('[data-panel="logs"]')!;
-  const output = dialog.querySelector<HTMLElement>('[data-log-output]')!;
-  const status = dialog.querySelector<HTMLElement>('[data-log-status]')!;
-  const count = dialog.querySelector<HTMLElement>('[data-log-count]')!;
-  const error = dialog.querySelector<HTMLElement>('[data-settings-error]')!;
-  let activeTab: 'settings' | 'logs' = 'settings';
-
-  const showTab = (tab: 'settings' | 'logs') => {
-    activeTab = tab;
-    settingsPanel.hidden = tab !== 'settings';
-    logsPanel.hidden = tab !== 'logs';
-    for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
-      const selected = button.dataset.tab === tab;
-      button.setAttribute('aria-selected', String(selected));
-      button.style.borderColor = selected ? '#22c55e' : '#8b5cf6';
-    }
-    if (tab === 'logs') output.scrollTop = output.scrollHeight;
-  };
-
-  const renderLogs = () => {
-    const logs = getLogs();
-    output.textContent = formatLogs();
-    count.textContent = `(${logs.length})`;
-    const preferences = getLogRoutes();
-    for (const checkbox of dialog.querySelectorAll<HTMLInputElement>('[data-route]')) {
-      checkbox.checked = preferences[checkbox.dataset.route as LogRoute];
-    }
-    if (activeTab === 'logs') output.scrollTop = output.scrollHeight;
-  };
-  subscribeLogs(renderLogs);
-  renderLogs();
-
-  for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
-    button.addEventListener('click', () => showTab(button.dataset.tab as 'settings' | 'logs'));
-  }
-  for (const checkbox of dialog.querySelectorAll<HTMLInputElement>('[data-route]')) {
-    checkbox.addEventListener('change', () => setLogRoute(checkbox.dataset.route as LogRoute, checkbox.checked));
-  }
-  dialog.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
-  dialog.querySelector('[data-cancel]')?.addEventListener('click', () => dialog.close());
-  dialog.querySelector('[data-copy]')?.addEventListener('click', () => {
-    GM_setClipboard(formatLogs(), 'text');
-    status.textContent = 'Logs copied to clipboard.';
-  });
-  dialog.querySelector('[data-clear]')?.addEventListener('click', () => {
-    clearLogs();
-    status.textContent = 'Logs cleared.';
-  });
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    onSave({ model: field('model').value, baseURL: field('baseURL').value, apiKey: field('apiKey').value, appendChatCompletions: field('appendChatCompletions').checked, transport: field('transport').value as AgentSettings['transport'] });
-  });
-
-  const open = (tab: 'settings' | 'logs') => {
-    showTab(tab);
-    if (!dialog.open) dialog.showModal();
-  };
-
-  return {
-    setOpen(isOpen) {
-      launcher.setAttribute('aria-expanded', String(isOpen));
-      launcher.style.borderColor = isOpen ? '#22c55e' : '#8b5cf6';
-    },
-    openSettings(settings, message = '') {
-      field('model').value = settings.model;
-      field('baseURL').value = settings.baseURL;
-      field('apiKey').value = settings.apiKey;
-      field('appendChatCompletions').checked = settings.appendChatCompletions;
-      field('transport').value = settings.transport;
-      error.textContent = message;
-      open('settings');
-    },
-    openLogs() {
-      status.textContent = '';
-      open('logs');
-    },
-  };
-}
+function profileField(name: string, label: string, type = 'text', wide = false): string { return `<label class="${wide ? 'wide' : ''}">${label}<input class="field" name="${name}" type="${type}"></label>`; }
+function profileArea(name: string, label: string): string { return `<label class="wide">${label}<textarea class="field" name="${name}" rows="3"></textarea></label>`; }

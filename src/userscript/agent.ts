@@ -1,6 +1,7 @@
 import { PageAgent } from 'page-agent';
 import type { AgentSettings } from './settings';
 import { createProviderFetch, NO_API_KEY_SENTINEL } from './network';
+import { getProfile, profileForPrompt } from './profile';
 
 export function createAgent(settings: AgentSettings): PageAgent {
   return new PageAgent({
@@ -15,7 +16,8 @@ export function createAgent(settings: AgentSettings): PageAgent {
 - Follow the user's request precisely.
 - Ask before submitting forms, purchases, messages, or other consequential actions.
 - Never reveal or copy passwords, API keys, payment data, or private tokens.
-- Report errors clearly and stop rather than retrying blindly.`,
+- Report errors clearly and stop rather than retrying blindly.
+- Treat user profile details as private. Use them only when relevant and ask before entering or submitting sensitive personal data.${profileForPrompt(getProfile())}`,
       getPageInstructions: url => `Current page: ${url}`,
     },
   });

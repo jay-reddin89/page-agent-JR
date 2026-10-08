@@ -4,6 +4,7 @@ declare function GM_deleteValue(key: string): void;
 declare function GM_registerMenuCommand(name: string, callback: () => void): void;
 declare function GM_setClipboard(data: string, type?: string): void;
 declare const unsafeWindow: Window & typeof globalThis;
+declare const GM_info: { scriptHandler?: string; version?: string; script?: { version?: string } };
 
 interface GMXmlHttpResponse {
   status: number;

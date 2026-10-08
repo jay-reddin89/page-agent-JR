@@ -31,7 +31,7 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 
 ### Phase 2 — Isolation and compatibility
 
-- [ ] Put launcher and settings UI in a Shadow DOM to prevent host-page CSS collisions.
+- [x] Put launcher and settings UI in a Shadow DOM to prevent host-page CSS collisions.
 - [ ] Replace selectors based on Page Agent's generated class names with stable hooks or an upstream extension API.
 - [ ] Handle single-page-app navigation and pages that replace `document.body`.
 - [ ] Detect duplicate installs and guarantee only one launcher and one agent instance.
@@ -41,7 +41,7 @@ Deliver one installable `page-agent.user.js` file that adds Page Agent to ordina
 ### Phase 3 — Security and permissions
 
 - [ ] Replace broad `@connect *` with generated or documented endpoint-specific permissions where practical.
-- [ ] Add an explicit warning that userscript-manager storage is not a secure secret vault.
+- [x] Add an explicit warning that userscript-manager storage is not a secure secret vault.
 - [ ] Add an option to keep the API key in memory only and clear it when the tab closes.
 - [ ] Mask password, payment, token, and private fields before page content is sent to the model.
 - [ ] Require confirmation before submissions, purchases, messages, deletions, or other consequential actions.
