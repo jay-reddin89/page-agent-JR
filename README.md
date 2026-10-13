@@ -1,192 +1,55 @@
-# Page Agent Demo
+# Page Agent Everywhere
 
-A reference implementation demonstrating **[page-agent](https://github.com/alibaba/page-agent)** integration with a React application. This showcase illustrates how page-agent's LLM-driven automation can navigate multi-step forms, understand page context, and assist users through complex workflows.
+A standalone userscript that adds a configurable [Page Agent](https://github.com/alibaba/page-agent) assistant to ordinary webpages. It builds as one installable file and does not include the original conference demo website.
 
-## What is Page Agent?
-
-[page-agent](https://github.com/alibaba/page-agent) is an AI-powered browser automation library that uses LLM-driven decision making to:
-
-- **Understand page context** through semantic analysis
-- **Autonomously navigate** complex multi-step workflows
-- **Interact with forms** using natural language instructions
-- **Handle dynamic content** and edge cases intelligently
-
-Unlike traditional automation tools that rely on brittle selectors, page-agent uses AI to interpret page structure and user intent.
-
-## Implementation Overview
-
-This demo showcases a complete page-agent integration with:
-
-| Feature | Implementation |
-|---------|----------------|
-| **PageController** | Visual masking enabled for element highlighting |
-| **Page-Specific Instructions** | Route-aware guidance via `getPageInstructions` |
-| **System Prompt** | Comprehensive agent behavior guidelines |
-| **Multi-Language Support** | Configured for `en-US` |
-| **Floating UI** | React component for agent activation |
-| **Route Awareness** | Dynamic instructions based on current path |
-
-## Quick Start
+## Build
 
 ```bash
-# Clone and install
-git clone https://github.com/khawjaahmad/page-agent-demo.git
-cd page-agent-demo
 npm install
-
-# Configure LLM (required)
-cp .env.example .env.local
-# Edit .env with your LLM credentials
-
-# Run dev server
-npm run dev
-
-# Build for production
 npm run build
-
-# Preview production build
-npm run preview
-
-# Run linter
-npm run lint
 ```
 
-Open http://localhost:5173 and click the floating AI button to interact with the agent.
+Install `dist/page-agent.user.js` with ScriptCat, Tampermonkey, or Violentmonkey. Open the launcher and save settings in this format:
 
-## LLM Configuration
-
-Page Agent requires an OpenAI-compatible LLM endpoint. Configure via environment variables:
-
-```bash
-VITE_LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+```dotenv
+VITE_LLM_BASE_URL=https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run
 VITE_LLM_API_KEY=your-api-key
 VITE_LLM_MODEL=qwen3.5-plus
 ```
 
-### Supported Providers
+The API key is optional. Leave it empty for a keyless provider, or use `NA` when a provider explicitly expects that sentinel. Placeholder `your-api-key` is rejected. Settings appear as separate records in userscript storage. Version 0.2+ automatically migrates the earlier `page-agent-settings-v1` JSON object.
 
-| Provider | Base URL |
-|----------|-----------|
-| Alibaba DashScope | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| OpenAI | `https://api.openai.com/v1` |
-| Ollama (local) | `http://localhost:11434/v1` |
-| LM Studio (local) | `http://localhost:1234/v1` |
+The “Append `/chat/completions`” option is on by default for OpenAI-compatible base URLs. Disable it only when the entered URL is already the complete provider endpoint.
 
-## Integration Details
+Use **Native page fetch** for providers that authorize the current webpage origin. It is the default and matches normal browser requests. **Userscript GM request** remains available for providers that allow the userscript manager's extension transport.
 
-### 1. Initialization
+The configuration popup includes Settings, Details, and live Logs tabs. Details stores an optional local user profile that the agent can use when relevant; never store passwords, payment data, or security answers there. Logs show the userscript version, transport, page origin, request/response metadata, runtime diagnostics, and errors. Routes can be enabled independently, and logs can be copied, cleared, or supplemented with a diagnostic snapshot. API keys and authorization values are never logged.
 
-```typescript
-import { PageAgent } from 'page-agent';
+Use the **+** button in the agent header to clear chat/context and start a fresh session.
 
-const agent = new PageAgent({
-  baseURL: config.llm.baseURL,
-  apiKey: config.llm.apiKey,
-  model: config.llm.model,
-  language: 'en-US',
-  enableMask: true,
-  viewportExpansion: 0,
-});
+## Development
+
+```bash
+npm run watch
+npm run lint
 ```
 
-### 2. System Instructions
+The source is isolated under `src/userscript/`:
 
-Define agent behavior through system prompts:
+- `main.ts` — lifecycle and Page Agent integration
+- `agent.ts` — generic assistant configuration
+- `ui.ts` — isolated launcher and Settings, Details, and Logs dialog
+- `profile.ts` — optional userscript-local user details
+- `panelGeometry.ts` — draggable and resizable popup behavior
+- `settings.ts` — userscript-manager settings storage
+- `network.ts` — cross-origin request adapter
 
-```typescript
-instructions: {
-  system: `
-    You are an AI assistant helping users navigate a registration flow.
-    - Always confirm actions before executing
-    - Be clear and concise
-    - Report errors and suggest next steps
-  `,
-}
-```
+See [docs/USERSCRIPT-MIGRATION.md](docs/USERSCRIPT-MIGRATION.md) for the implementation roadmap, acceptance criteria, security work, and distribution plan.
 
-### 3. Page-Specific Instructions
+## Security
 
-Provide route-aware guidance:
-
-```typescript
-instructions: {
-  getPageInstructions: (url: string) => {
-    const path = new URL(url).pathname;
-    return PAGE_INSTRUCTIONS[path] || undefined;
-  },
-}
-```
-
-Example page instruction:
-
-```typescript
-'/tickets': `
-This is the ticket selection page with three ticket tiers.
-Available actions:
-- Click on any ticket card to select it
-- View ticket benefits on each card
-- After selection, click "Continue to Workshops" button
-`,
-```
-
-### 4. React Integration
-
-The `AIAgentButton` component wraps the page-agent instance:
-
-```tsx
-<button onClick={() => agent?.start()}>
-  Ask AI
-</button>
-```
-
-## Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `baseURL` | `string` | *(required)* | LLM API endpoint |
-| `apiKey` | `string` | *(required)* | API key for LLM provider |
-| `model` | `string` | *(required)* | Model name |
-| `language` | `string` | `'en-US'` | Locale for responses |
-| `enableMask` | `boolean` | `false` | Enable visual element highlighting |
-| `viewportExpansion` | `number` | `0` | Padding around viewport |
-
-## Project Structure
-
-```
-src/
-├── components/
-│   └── AIAgentButton.tsx    # Floating agent activation button
-├── services/
-│   └── pageAgent.ts          # PageAgent initialization & config
-├── config/
-│   └── env.ts                # LLM configuration
-└── pages/                    # Demo pages with interactive forms
-```
-
-## Tech Stack
-
-| Technology | Version |
-|------------|---------|
-| page-agent | 1.5.6 |
-| React | 19.2.4 |
-| TypeScript | 5.x |
-| Vite | 8.x |
-
-## Example Agent Interactions
-
-Once activated, try these prompts to see page-agent in action:
-
-- "Click the Register button"
-- "Fill out the sign-up form with my name and email"
-- "Navigate to the next page"
-- "What actions are available on this page?"
-- "Scroll down and read the content"
+The current development build stores the API key in userscript-manager storage and requests `@connect *` so users can configure arbitrary endpoints. Treat that storage as plain text. Narrow network permissions, add sensitive-field masking, and add per-domain controls before broad distribution.
 
 ## License
 
 MIT
-
-## Links
-
-- [page-agent Documentation](https://alibaba.github.io/page-agent/)
-- [page-agent GitHub](https://github.com/alibaba/page-agent)
